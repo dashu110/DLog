@@ -1,0 +1,103 @@
+apply plugin: 'com.android.library'
+apply plugin: 'maven'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.2"
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0.1"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        externalNativeBuild {
+            cmake {
+                cppFlags "-std=c++11 -frtti -fexceptions -lz"
+                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.sun.mail:android-mail:1.6.0'
+    implementation 'com.sun.mail:android-activation:1.6.0'
+    implementation 'com.tencent.bugly:crashreport:3.1.0'
+    implementation 'com.tencent.bugly:nativecrashreport:3.7.1'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+}
+
+project.ext.config = [
+        "moduleSettings"         : [
+                "versionName"      : '1.0.1',
+                "versionCode"      : 1, //修改为相应的版本号
+                "compileSdkVersion": 28,
+                "buildToolsVersion": "26.0.2",
+                "minSdkVersion"    : 15,
+                "targetSdkVersion" : 25],
+
+        "mavenRepositorySettings": [
+                "projectRepository" : "http://maven.zuche.com/nexus/content/repositories/luckyclientlib/",
+                "snapshotRepository": "http://maven.zuche.com/nexus/content/repositories/luckyclientlib_snapshot/",
+                "user"              : "LuckinDev",
+                "password"          : "LuckinDev"],
+
+        "mavenLibraySettings"    : [
+                "libName"   : 'lklogger',//修改为相应的模块名
+                "artifactId": 'lklogger',//修改为相应的模块名
+                "groupId"   : "com.lucky"]
+]
+
+uploadArchives {
+
+    println "uploadArchives versionName " + project.ext.config.moduleSettings.versionName
+
+    repositories.mavenDeployer {
+        repository(url: project.ext.config.mavenRepositorySettings.projectRepository) {
+            authentication(userName: project.ext.config.mavenRepositorySettings.user, password: project.ext.config.mavenRepositorySettings.password)
+        }
+
+        snapshotRepository(url: project.ext.config.mavenRepositorySettings.snapshotRepository) {
+            authentication(userName: project.ext.config.mavenRepositorySettings.user, password: project.ext.config.mavenRepositorySettings.password)
+        }
+
+        pom.version = project.ext.config.moduleSettings.versionName
+        pom.artifactId = project.ext.config.mavenLibraySettings.artifactId
+        pom.groupId = project.ext.config.mavenLibraySettings.groupId
+        pom.name = project.ext.config.mavenLibraySettings.libName
+        pom.packaging = 'aar'
+    }
+}
+
+task makeJar(type: Copy) {
+    //删除存在的
+    delete 'build/libs/lklogger.jar'
+    //设置拷贝的文件
+    from('build/intermediates/packaged-classes/release/')
+    //打进jar包后的文件目录
+    into('build/libs/')
+    //将classes.jar放入build/libs/目录下
+    //include ,exclude参数来设置过滤
+    //（我们只关心classes.jar这个文件）
+    include('classes.jar')
+    //重命名
+    rename('classes.jar', 'lklogger.jar')
+}
+
+makeJar.dependsOn(build)
